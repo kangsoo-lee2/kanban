@@ -74,13 +74,9 @@ async function handleEmailLogin() {
   if (!email || !password) { showMessage('이메일과 비밀번호를 입력하세요.', true); return; }
 
   showMessage('로그인 중...', false);
-  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  const { error } = await sb.auth.signInWithPassword({ email, password });
   if (error) { showMessage(toKoreanError(error.message), true); return; }
-
-  currentUser = data.user;
-  updateUserUI(currentUser);
-  showBoard();
-  await loadCards();
+  /* 성공 시 onAuthStateChange가 showBoard + loadCards 처리 */
 }
 
 /* ── 이메일 회원가입 ── */
@@ -97,12 +93,8 @@ async function handleEmailSignup() {
   });
   if (error) { showMessage(toKoreanError(error.message), true); return; }
 
-  if (data.session && data.user) {
-    /* 이메일 확인 불필요 설정인 경우 바로 로그인 */
-    currentUser = data.user;
-    updateUserUI(currentUser);
-    showBoard();
-    await loadCards();
+  if (data.session) {
+    /* 이메일 확인 불필요 설정인 경우 — onAuthStateChange가 처리 */
   } else {
     showMessage('확인 이메일을 발송했습니다. 받은편지함(스팸 포함)을 확인해 주세요.', false);
   }
@@ -121,7 +113,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
     currentUser = session.user;
     updateUserUI(currentUser);
     showBoard();
-    await loadCards();
+    loadCards(); /* await 제거 — 보드 표시를 카드 로드보다 우선 */
   } else {
     currentUser = null;
     showAuth();
