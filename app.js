@@ -27,6 +27,7 @@ function showMessage(msg, isError = false) {
 
 /* ── 사용자 UI 업데이트 ── */
 function updateUserUI(user) {
+  if (!user) return;
   const email = user.email || user.user_metadata?.full_name || '사용자';
   document.getElementById('user-email').textContent = email;
   const initial = email.charAt(0).toUpperCase();
