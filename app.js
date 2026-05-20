@@ -22,13 +22,13 @@ function toKoreanError(msg) {
 
 /* ── 화면 전환 ── */
 function showBoard() {
-  document.getElementById('auth-section').hidden = true;
-  document.getElementById('board-section').hidden = false;
+  document.getElementById('auth-section').style.display = 'none';
+  document.getElementById('board-section').style.display = 'block';
 }
 
 function showAuth() {
-  document.getElementById('auth-section').hidden = false;
-  document.getElementById('board-section').hidden = true;
+  document.getElementById('auth-section').style.display = '';
+  document.getElementById('board-section').style.display = 'none';
 }
 
 function showMessage(msg, isError = false) {
