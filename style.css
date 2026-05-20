@@ -1,0 +1,430 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f0f2f5;
+  min-height: 100vh;
+}
+
+/* ── 인증 화면 ── */
+#auth-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 24px;
+}
+
+.auth-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.auth-logo {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.auth-title {
+  text-align: center;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 6px;
+}
+
+.auth-subtitle {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #888;
+  margin-bottom: 28px;
+}
+
+.oauth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  border: 1px solid #e0e0e0;
+}
+
+.google-btn {
+  background: #fff;
+  color: #333;
+}
+.google-btn:hover {
+  background: #f7f7f7;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.github-btn {
+  background: #24292e;
+  color: #fff;
+  border-color: #24292e;
+}
+.github-btn:hover {
+  background: #1a1e21;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.oauth-icon {
+  flex-shrink: 0;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: #bbb;
+  font-size: 0.82rem;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e8e8e8;
+}
+
+.email-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.email-form input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+  color: #333;
+}
+
+.email-form input:focus {
+  border-color: #3498db;
+}
+
+.auth-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.auth-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.primary-btn {
+  background: #3498db;
+  color: #fff;
+}
+.primary-btn:hover { background: #2980b9; }
+
+.secondary-btn {
+  background: #f0f0f0;
+  color: #333;
+}
+.secondary-btn:hover { background: #e0e0e0; }
+
+.auth-message {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  text-align: center;
+}
+.auth-message.success {
+  background: #eafaf1;
+  color: #27ae60;
+  border: 1px solid #2ecc71;
+}
+.auth-message.error {
+  background: #fdedec;
+  color: #c0392b;
+  border: 1px solid #e74c3c;
+}
+
+/* ── 앱 헤더 ── */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-left h1 {
+  font-size: 1.3rem;
+  color: #1a1a2e;
+  font-weight: 700;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-email {
+  font-size: 0.88rem;
+  color: #555;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signout-btn {
+  padding: 6px 14px;
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: #666;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.signout-btn:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+/* ── 보드 레이아웃 ── */
+.board {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  padding: 32px 24px;
+}
+
+/* ── 칼럼 ── */
+.column {
+  background: #ffffff;
+  border-radius: 12px;
+  width: 300px;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.2s;
+}
+
+.column-header {
+  padding: 16px 16px 12px;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.column[data-col="todo"] .column-header {
+  background: #e8f4fd;
+  border-bottom: 3px solid #3498db;
+}
+.column[data-col="inprogress"] .column-header {
+  background: #fef9e7;
+  border-bottom: 3px solid #f39c12;
+}
+.column[data-col="done"] .column-header {
+  background: #eafaf1;
+  border-bottom: 3px solid #2ecc71;
+}
+
+.column-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── 배지 ── */
+.badge {
+  background: #ddd;
+  color: #555;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 2px 9px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.column[data-col="todo"] .badge       { background: #3498db; color: #fff; }
+.column[data-col="inprogress"] .badge { background: #f39c12; color: #fff; }
+.column[data-col="done"] .badge       { background: #2ecc71; color: #fff; }
+
+/* ── 카드 목록 영역 ── */
+.card-list {
+  padding: 12px;
+  flex: 1;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: background 0.15s;
+  border-radius: 0 0 12px 12px;
+}
+
+.card-list.drag-over {
+  background: #f0f7ff;
+  outline: 2px dashed #3498db;
+  outline-offset: -4px;
+  border-radius: 0 0 12px 12px;
+}
+
+/* ── 카드 ── */
+.card {
+  background: #fff;
+  border: 1px solid #e8ecef;
+  border-radius: 8px;
+  padding: 12px 14px;
+  cursor: grab;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.15s, opacity 0.15s, transform 0.15s;
+  user-select: none;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+.card.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.card-text {
+  font-size: 0.9rem;
+  color: #333;
+  line-height: 1.45;
+  word-break: break-word;
+  flex: 1;
+}
+
+.card-delete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #bbb;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 2px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.card-delete:hover { color: #e74c3c; }
+
+/* ── 카드 추가 영역 ── */
+.add-area {
+  padding: 0 12px 12px;
+}
+
+.add-area textarea {
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  resize: none;
+  height: 58px;
+  outline: none;
+  transition: border-color 0.15s;
+  color: #333;
+}
+
+.add-area textarea:focus { border-color: #3498db; }
+.add-area textarea::placeholder { color: #aaa; }
+
+.add-btn {
+  margin-top: 8px;
+  width: 100%;
+  padding: 7px;
+  background: #3498db;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.add-btn:hover { background: #2980b9; }
+
+.column[data-col="inprogress"] .add-btn       { background: #f39c12; }
+.column[data-col="inprogress"] .add-btn:hover { background: #d68910; }
+
+.column[data-col="done"] .add-btn       { background: #2ecc71; }
+.column[data-col="done"] .add-btn:hover { background: #27ae60; }
+
+/* ── 반응형 ── */
+@media (max-width: 680px) {
+  .user-email { display: none; }
+  .board { padding: 16px 12px; }
+  .column { width: 100%; max-width: 360px; }
+}
