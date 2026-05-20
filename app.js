@@ -74,7 +74,8 @@ async function handleEmailLogin() {
   if (!email || !password) { showMessage('이메일과 비밀번호를 입력하세요.', true); return; }
 
   showMessage('로그인 중...', false);
-  const { error } = await sb.auth.signInWithPassword({ email, password });
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  console.log('[Login]', { user: data?.user?.email, error: error?.message });
   if (error) { showMessage(toKoreanError(error.message), true); return; }
   /* 성공 시 onAuthStateChange가 showBoard + loadCards 처리 */
 }
@@ -109,11 +110,12 @@ async function signOut() {
 
 /* ── 세션 감지 ── */
 sb.auth.onAuthStateChange(async (event, session) => {
+  console.log('[Auth]', event, session?.user?.email ?? 'no user');
   if (session?.user) {
     currentUser = session.user;
     updateUserUI(currentUser);
     showBoard();
-    loadCards(); /* await 제거 — 보드 표시를 카드 로드보다 우선 */
+    loadCards();
   } else {
     currentUser = null;
     showAuth();
@@ -122,14 +124,16 @@ sb.auth.onAuthStateChange(async (event, session) => {
 
 /* ── DB: 카드 로드 ── */
 async function loadCards() {
-  if (!currentUser) return;
+  if (!currentUser) { console.log('[loadCards] currentUser 없음'); return; }
+  console.log('[loadCards] 시작, user:', currentUser.id);
   const { data, error } = await sb
     .from('cards')
     .select('*')
     .eq('user_id', currentUser.id)
     .order('position', { ascending: true });
 
-  if (error) { console.error('카드 로드 실패:', error.message); return; }
+  console.log('[loadCards] 결과:', { data, error });
+  if (error) { console.error('카드 로드 실패:', error.message, error.code, error.hint); return; }
 
   const state = { todo: [], inprogress: [], done: [] };
   (data || []).forEach(row => {
