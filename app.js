@@ -77,13 +77,13 @@ async function handleEmailSignup() {
   });
   if (error) { showMessage(error.message, true); return; }
 
-  if (data.user && !data.user.confirmed_at && data.session === null) {
-    showMessage('확인 이메일을 발송했습니다. 이메일을 확인해 주세요.', false);
-  } else {
+  if (data.session && data.user) {
     currentUser = data.user;
     updateUserUI(currentUser);
     showBoard();
     await loadCards();
+  } else {
+    showMessage('확인 이메일을 발송했습니다. 이메일을 확인해 주세요.', false);
   }
 }
 
