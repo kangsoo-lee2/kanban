@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kanban 진단</title>
+  <style>
+    body { font-family: monospace; padding: 24px; background: #1a1a2e; color: #eee; }
+    h2 { color: #3498db; margin-bottom: 16px; }
+    .step { margin: 12px 0; padding: 12px; border-radius: 6px; background: #16213e; }
+    .ok   { border-left: 4px solid #2ecc71; }
+    .fail { border-left: 4px solid #e74c3c; }
+    .info { border-left: 4px solid #3498db; }
+    .wait { border-left: 4px solid #f39c12; }
+    pre { white-space: pre-wrap; word-break: break-all; font-size: 0.85rem; margin-top: 6px; color: #aaa; }
+    button { padding: 8px 18px; margin: 6px 4px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
+    .btn-primary { background: #3498db; color: #fff; }
+    .btn-danger  { background: #e74c3c; color: #fff; }
+    input { padding: 7px 10px; border-radius: 6px; border: 1px solid #444; background: #0f3460; color: #fff; width: 220px; margin: 4px; }
+    #log { margin-top: 20px; }
+  </style>
+</head>
+<body>
+<h2>🔍 Kanban Supabase 진단</h2>
+
+<div class="step info">
+  <b>테스트 이메일/비밀번호</b><br>
+  <input type="email" id="t-email" placeholder="test@example.com" />
+  <input type="password" id="t-pw" placeholder="password123" />
+</div>
+
+<button class="btn-primary" onclick="runAll()">전체 테스트 실행</button>
+<button class="btn-primary" onclick="testSignup()">회원가입</button>
+<button class="btn-primary" onclick="testLogin()">로그인</button>
+<button class="btn-primary" onclick="testSession()">세션 확인</button>
+<button class="btn-primary" onclick="testCards()">카드 테이블 조회</button>
+<button class="btn-primary" onclick="testInsert()">카드 삽입 테스트</button>
+<button class="btn-danger"  onclick="testSignout()">로그아웃</button>
+
+<div id="log"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://tfakzxaygrvvzmtgqwhr.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_dKRm1KtOMAV9Ow3VGI4QDQ_N87ile5h';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function log(msg, status = 'info', detail = '') {
+  const div = document.createElement('div');
+  div.className = 'step ' + status;
+  div.innerHTML = '<b>' + msg + '</b>' + (detail ? '<pre>' + JSON.stringify(detail, null, 2) + '</pre>' : '');
+  document.getElementById('log').prepend(div);
+}
+
+function email() { return document.getElementById('t-email').value.trim(); }
+function pw()    { return document.getElementById('t-pw').value; }
+
+async function testSignup() {
+  log('▶ 회원가입 시도: ' + email(), 'wait');
+  const { data, error } = await sb.auth.signUp({ email: email(), password: pw() });
+  if (error) { log('✗ 회원가입 실패', 'fail', { message: error.message, status: error.status }); return; }
+  log('✓ 회원가입 응답', 'ok', {
+    user: data.user?.id,
+    email: data.user?.email,
+    confirmed: data.user?.email_confirmed_at,
+    session: !!data.session
+  });
+}
+
+async function testLogin() {
+  log('▶ 로그인 시도: ' + email(), 'wait');
+  const { data, error } = await sb.auth.signInWithPassword({ email: email(), password: pw() });
+  if (error) { log('✗ 로그인 실패', 'fail', { message: error.message, status: error.status }); return; }
+  log('✓ 로그인 성공', 'ok', {
+    user_id: data.user?.id,
+    email: data.user?.email,
+    access_token: data.session?.access_token?.substring(0, 30) + '...'
+  });
+}
+
+async function testSession() {
+  log('▶ 현재 세션 확인', 'wait');
+  const { data, error } = await sb.auth.getSession();
+  if (error) { log('✗ 세션 오류', 'fail', error); return; }
+  if (!data.session) { log('ℹ 세션 없음 (로그아웃 상태)', 'info'); return; }
+  log('✓ 세션 있음', 'ok', {
+    user_id: data.session.user?.id,
+    email: data.session.user?.email,
+    expires_at: new Date(data.session.expires_at * 1000).toLocaleString()
+  });
+}
+
+async function testCards() {
+  log('▶ cards 테이블 SELECT', 'wait');
+  const { data, error } = await sb.from('cards').select('*').limit(5);
+  if (error) { log('✗ cards 조회 실패', 'fail', { message: error.message, code: error.code, hint: error.hint }); return; }
+  log('✓ cards 조회 성공', 'ok', { count: data.length, rows: data });
+}
+
+async function testInsert() {
+  log('▶ cards INSERT 테스트', 'wait');
+  const { data: sess } = await sb.auth.getSession();
+  if (!sess.session) { log('✗ 로그인 필요', 'fail'); return; }
+  const { data, error } = await sb.from('cards').insert({
+    user_id: sess.session.user.id,
+    col: 'todo',
+    text: '테스트 카드 ' + new Date().toLocaleTimeString(),
+    position: 0
+  }).select();
+  if (error) { log('✗ INSERT 실패', 'fail', { message: error.message, code: error.code, hint: error.hint }); return; }
+  log('✓ INSERT 성공', 'ok', data);
+}
+
+async function testSignout() {
+  await sb.auth.signOut();
+  log('✓ 로그아웃 완료', 'ok');
+}
+
+async function runAll() {
+  document.getElementById('log').innerHTML = '';
+  log('━━━ 전체 테스트 시작 ━━━', 'info');
+
+  // 1. SDK 로드 확인
+  log('▶ Supabase SDK 로드 확인', 'wait');
+  if (typeof supabase !== 'undefined') {
+    log('✓ SDK 로드됨', 'ok', { version: supabase.version || 'loaded' });
+  } else {
+    log('✗ SDK 로드 실패', 'fail');
+    return;
+  }
+
+  // 2. 세션 확인
+  await testSession();
+
+  // 3. 로그인 시도
+  if (email() && pw()) {
+    await testLogin();
+    await testSession();
+    await testCards();
+    await testInsert();
+  } else {
+    log('ℹ 이메일/비밀번호 입력 후 전체 테스트 재실행', 'info');
+  }
+}
+</script>
+</body>
+</html>
