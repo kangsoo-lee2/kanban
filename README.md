@@ -1,6 +1,6 @@
 # 칸반 보드
 
-> **배포 URL: https://sarangks2-commits.github.io/kanban/**
+> **배포 URL: https://kangsoo-lee2.github.io/kanban/**
 
 드래그앤드롭으로 작업을 관리하는 칸반 보드 웹 앱.  
 Supabase 인증(Google / GitHub / 이메일)과 PostgreSQL 데이터베이스를 사용합니다.
@@ -25,7 +25,7 @@ Supabase 인증(Google / GitHub / 이메일)과 PostgreSQL 데이터베이스를
 1. Supabase 대시보드에서 `cards` 테이블 생성 (DATABASE.md 참조)
 2. RLS 정책 적용 (DATABASE.md의 DDL 실행)
 3. Authentication → Providers에서 Google, GitHub 활성화
-4. Redirect URL에 `https://sarangks2-commits.github.io/kanban/` 등록
+4. Redirect URL에 `https://kangsoo-lee2.github.io/kanban/` 등록
 
 ## 설계 문서
 

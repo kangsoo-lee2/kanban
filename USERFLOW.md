@@ -11,7 +11,7 @@
 
 ```mermaid
 flowchart TD
-    START([브라우저 접속\nhttps://sarangks2-commits.github.io/kanban/])
+    START([브라우저 접속\nhttps://kangsoo-lee2.github.io/kanban/])
     START --> SESSION{onAuthStateChange\n세션 확인}
 
     SESSION -->|세션 있음| BOARD[칸반 보드 표시\nloadCards 호출]

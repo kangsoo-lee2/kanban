@@ -222,12 +222,12 @@ dragend    → card.classList.remove('dragging')
 | 항목 | 내용 |
 |------|------|
 | 플랫폼 | GitHub Pages |
-| 저장소 | https://github.com/sarangks2-commits/kanban |
+| 저장소 | https://github.com/kangsoo-lee2/kanban |
 | 브랜치 | `main` |
 | 배포 경로 | 루트 (`/`) |
-| 배포 URL | https://sarangks2-commits.github.io/kanban/ |
+| 배포 URL | https://kangsoo-lee2.github.io/kanban/ |
 | HTTPS | GitHub Pages 자동 제공 |
-| Supabase redirectTo | https://sarangks2-commits.github.io/kanban/ |
+| Supabase redirectTo | https://kangsoo-lee2.github.io/kanban/ |
 
 ---
 

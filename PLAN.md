@@ -20,7 +20,7 @@
 4. **카드 삭제** — DB 삭제
 5. **드래그앤드롭** — DB col 업데이트
 6. **카드 개수 배지** — 칼럼 헤더 표시
-7. **배포** — GitHub Pages (https://sarangks2-commits.github.io/kanban/)
+7. **배포** — GitHub Pages (https://kangsoo-lee2.github.io/kanban/)
 
 ### UI / UX
 - 로그인 화면 — Google/GitHub 버튼 + 이메일 폼
@@ -84,7 +84,7 @@ kanban/
 
 | 항목 | 값 |
 |------|-----|
-| 배포 URL | https://sarangks2-commits.github.io/kanban/ |
-| 저장소 | https://github.com/sarangks2-commits/kanban |
+| 배포 URL | https://kangsoo-lee2.github.io/kanban/ |
+| 저장소 | https://github.com/kangsoo-lee2/kanban |
 | 브랜치 | main |
 | Supabase URL | https://tfakzxaygrvvzmtgqwhr.supabase.co |

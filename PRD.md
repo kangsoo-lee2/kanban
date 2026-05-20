@@ -31,7 +31,7 @@
 - GitHub Pages에 배포하여 별도 서버 없이 정적 앱으로 운영.
 
 ### 1.4 배포 주소
-**https://sarangks2-commits.github.io/kanban/**
+**https://kangsoo-lee2.github.io/kanban/**
 
 ### 1.5 목표
 | # | 목표 | 측정 기준 |
@@ -158,6 +158,6 @@
 - [x] 이메일 회원가입/로그인 정상 동작 확인
 - [x] 카드 CRUD Supabase DB 반영 확인
 - [x] RLS 정책 적용 (사용자별 데이터 격리)
-- [x] GitHub Pages 배포 완료 (https://sarangks2-commits.github.io/kanban/)
+- [x] GitHub Pages 배포 완료 (https://kangsoo-lee2.github.io/kanban/)
 - [x] XSS 시나리오 무해 확인
 - [x] 320px 모바일 뷰 레이아웃 정상

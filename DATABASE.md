@@ -144,14 +144,14 @@ CREATE INDEX idx_cards_created
 Supabase 대시보드 → **Authentication → URL Configuration** → Redirect URLs에 추가:
 
 ```
-https://sarangks2-commits.github.io/kanban/
+https://kangsoo-lee2.github.io/kanban/
 http://localhost:8765/
 ```
 
 ### 6.3 Site URL 설정
 
 ```
-https://sarangks2-commits.github.io/kanban/
+https://kangsoo-lee2.github.io/kanban/
 ```
 
 ---
