@@ -9,7 +9,7 @@
 </head>
 <body>
 
-<!-- 인증 화면 -->
+<!-- ── 인증 화면 ── -->
 <div id="auth-section">
   <div class="auth-card">
     <div class="auth-logo">
@@ -33,7 +33,6 @@
         </svg>
         Google로 계속하기
       </button>
-
       <button class="oauth-btn github-btn" onclick="signInWithGitHub()">
         <svg viewBox="0 0 24 24" width="20" height="20" class="oauth-icon" fill="currentColor">
           <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
@@ -43,7 +42,6 @@
     </div>
 
     <div class="divider"><span>또는 이메일로</span></div>
-
     <div class="email-form">
       <input type="email" id="email-input" placeholder="이메일 주소" autocomplete="email" />
       <input type="password" id="password-input" placeholder="비밀번호 (6자 이상)" autocomplete="current-password" />
@@ -52,32 +50,60 @@
         <button class="auth-btn secondary-btn" onclick="handleEmailSignup()">회원가입</button>
       </div>
     </div>
-
-    <div id="auth-message" class="auth-message" hidden></div>
+    <div id="auth-message" class="auth-message" style="display:none"></div>
   </div>
 </div>
 
-<!-- 칸반 보드 화면 -->
-<div id="board-section" hidden>
+<!-- ── 보드 앱 화면 ── -->
+<div id="board-section" style="display:none">
+
+  <!-- 헤더 -->
   <header class="app-header">
     <div class="header-left">
-      <svg viewBox="0 0 40 40" width="32" height="32" fill="none">
+      <svg viewBox="0 0 40 40" width="28" height="28" fill="none">
         <rect width="40" height="40" rx="8" fill="#3498db"/>
         <rect x="7" y="9" width="7" height="22" rx="2" fill="white" opacity="0.9"/>
         <rect x="17" y="9" width="7" height="22" rx="2" fill="white" opacity="0.7"/>
         <rect x="27" y="9" width="7" height="14" rx="2" fill="white" opacity="0.5"/>
       </svg>
-      <h1>칸반 보드</h1>
+
+      <!-- 보드 피커 -->
+      <div class="board-picker" id="board-picker">
+        <button class="board-picker-btn" onclick="toggleBoardDropdown()">
+          <span id="current-board-name">보드 로딩 중...</span>
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M8 10.5L2 4.5h12z"/></svg>
+        </button>
+        <div class="board-dropdown" id="board-dropdown" style="display:none">
+          <div id="board-list"></div>
+          <div class="board-dropdown-divider"></div>
+          <button class="board-dropdown-new" onclick="openNewBoardModal()">+ 새 보드 만들기</button>
+        </div>
+      </div>
     </div>
-    <div class="user-info">
+
+    <div class="header-right">
+      <button class="header-icon-btn" title="공유" onclick="openShareModal()">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+        </svg>
+      </button>
+      <button class="header-icon-btn" title="활동 로그" onclick="toggleActivityPanel()">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+      </button>
       <div class="user-avatar" id="user-avatar"></div>
       <span class="user-email" id="user-email"></span>
       <button class="signout-btn" onclick="signOut()">로그아웃</button>
     </div>
   </header>
 
+  <!-- 칸반 보드 -->
   <div class="board" id="board">
-
     <div class="column" data-col="todo">
       <div class="column-header">
         <span class="column-title">To-Do</span>
@@ -89,7 +115,6 @@
         <button class="add-btn" onclick="addCard('todo')">+ 추가</button>
       </div>
     </div>
-
     <div class="column" data-col="inprogress">
       <div class="column-header">
         <span class="column-title">In-Progress</span>
@@ -101,7 +126,6 @@
         <button class="add-btn" onclick="addCard('inprogress')">+ 추가</button>
       </div>
     </div>
-
     <div class="column" data-col="done">
       <div class="column-header">
         <span class="column-title">Done</span>
@@ -113,7 +137,99 @@
         <button class="add-btn" onclick="addCard('done')">+ 추가</button>
       </div>
     </div>
+  </div>
+</div>
 
+<!-- ── 활동 로그 패널 ── -->
+<div class="activity-panel" id="activity-panel">
+  <div class="activity-panel-header">
+    <span>활동 로그</span>
+    <button class="panel-close-btn" onclick="toggleActivityPanel()">✕</button>
+  </div>
+  <div class="activity-list" id="activity-list">
+    <p class="activity-empty">활동 내역이 없습니다.</p>
+  </div>
+</div>
+<div class="panel-overlay" id="panel-overlay" onclick="toggleActivityPanel()"></div>
+
+<!-- ── 공유 모달 ── -->
+<div class="modal-backdrop" id="share-modal-backdrop" onclick="closeShareModal()" style="display:none">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2>보드 공유</h2>
+      <button class="modal-close" onclick="closeShareModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="modal-label">초대 코드</label>
+      <div class="invite-code-row">
+        <span class="invite-code-display" id="invite-code-display">------</span>
+        <button class="copy-btn" onclick="copyInviteCode()">복사</button>
+      </div>
+
+      <label class="modal-label" style="margin-top:20px">코드로 보드 참가</label>
+      <div class="invite-join-row">
+        <input type="text" id="join-code-input" placeholder="초대 코드 6자리" maxlength="6" />
+        <button class="primary-sm-btn" onclick="joinBoard()">참가</button>
+      </div>
+      <div id="join-message" style="font-size:0.82rem;margin-top:6px;min-height:18px"></div>
+
+      <label class="modal-label" style="margin-top:20px">멤버 목록</label>
+      <ul class="member-list" id="member-list"></ul>
+    </div>
+  </div>
+</div>
+
+<!-- ── 새 보드 모달 ── -->
+<div class="modal-backdrop" id="new-board-modal-backdrop" onclick="closeNewBoardModal()" style="display:none">
+  <div class="modal modal-sm" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2>새 보드 만들기</h2>
+      <button class="modal-close" onclick="closeNewBoardModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="modal-label">보드 이름</label>
+      <input type="text" id="new-board-name" placeholder="예: 프로젝트 A" style="width:100%;margin-bottom:16px" />
+      <button class="primary-btn" style="width:100%" onclick="createBoard()">만들기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 카드 상세 모달 ── -->
+<div class="modal-backdrop" id="card-modal-backdrop" onclick="closeCardModal()" style="display:none">
+  <div class="modal modal-card" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2>카드 상세</h2>
+      <button class="modal-close" onclick="closeCardModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="modal-label">내용</label>
+      <textarea id="card-modal-text" class="card-modal-textarea" rows="3"></textarea>
+
+      <div class="card-modal-meta">
+        <div class="meta-field">
+          <label class="modal-label">우선순위</label>
+          <select id="card-modal-priority" class="meta-select">
+            <option value="">없음</option>
+            <option value="high">🔴 높음 (High)</option>
+            <option value="medium">🟡 보통 (Medium)</option>
+            <option value="low">🟢 낮음 (Low)</option>
+          </select>
+        </div>
+        <div class="meta-field">
+          <label class="modal-label">마감일</label>
+          <input type="date" id="card-modal-due" class="meta-select" />
+        </div>
+      </div>
+
+      <label class="modal-label">태그 <span style="font-weight:400;color:#999">(쉼표로 구분)</span></label>
+      <input type="text" id="card-modal-tags" class="meta-select" style="width:100%" placeholder="예: 디자인, 긴급, FE" />
+
+      <div style="display:flex;gap:8px;margin-top:20px">
+        <button class="primary-btn" style="flex:1" onclick="saveCardModal()">저장</button>
+        <button class="danger-btn" onclick="deleteCardFromModal()">삭제</button>
+        <button class="secondary-btn" onclick="closeCardModal()">취소</button>
+      </div>
+    </div>
   </div>
 </div>
 
