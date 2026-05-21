@@ -6,9 +6,9 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ── 전역 상태 ── */
 const COLS = ['todo', 'inprogress', 'done'];
-let currentUser   = null;
-let currentBoardId = null;
-let cardModalId    = null;   // 상세 모달에 열린 카드 id
+let currentUser       = null;
+let currentBoardId    = null;
+let cardModalId       = null;
 let activityPanelOpen = false;
 
 /* ── 에러 메시지 한국어 변환 ── */
@@ -30,6 +30,12 @@ function showBoard() {
 function showAuth() {
   document.getElementById('auth-section').style.display  = '';
   document.getElementById('board-section').style.display = 'none';
+  /* 활동 패널도 닫기 */
+  if (activityPanelOpen) {
+    activityPanelOpen = false;
+    document.getElementById('activity-panel').classList.remove('open');
+    document.getElementById('panel-overlay').classList.remove('show');
+  }
 }
 function showMessage(msg, isError = false) {
   const el = document.getElementById('auth-message');
@@ -84,8 +90,12 @@ async function handleEmailSignup() {
 }
 async function signOut() {
   await sb.auth.signOut();
-  currentUser = null;
+  currentUser    = null;
   currentBoardId = null;
+  cardModalId    = null;
+  closeCardModal();
+  closeShareModal();
+  closeNewBoardModal();
   showAuth();
 }
 
@@ -97,30 +107,38 @@ sb.auth.onAuthStateChange(async (event, session) => {
     showBoard();
     await initUserBoard();
   } else {
-    currentUser = null;
+    currentUser    = null;
     currentBoardId = null;
     showAuth();
   }
 });
 
-/* ── 보드 초기화 (로그인 후 첫 진입) ── */
+/* ══════════════════════════════════════
+   보드 관리
+══════════════════════════════════════ */
+
 async function initUserBoard() {
+  document.getElementById('current-board-name').textContent = '보드 로딩 중...';
   const boards = await fetchMyBoards();
   if (boards.length === 0) {
     await createDefaultBoard();
   } else {
     await switchBoard(boards[0].id);
+    renderBoardPicker();
   }
-  renderBoardPicker();
 }
 
 async function fetchMyBoards() {
+  /* board_members에서 본인 rows 가져오고, boards join */
   const { data, error } = await sb
     .from('board_members')
     .select('board_id, role, boards(id, name, invite_code)')
     .eq('user_id', currentUser.id)
     .order('joined_at', { ascending: true });
-  if (error) { console.error('보드 목록 조회 실패:', error.message); return []; }
+  if (error) {
+    console.error('보드 목록 조회 실패:', error.message);
+    return [];
+  }
   return (data || []).map(r => r.boards).filter(Boolean);
 }
 
@@ -134,21 +152,26 @@ async function createDefaultBoard() {
   if (error) { console.error('기본 보드 생성 실패:', error.message); return; }
 
   await sb.from('board_members').insert({
-    board_id: board.id, user_id: currentUser.id,
-    email: currentUser.email, role: 'owner'
+    board_id: board.id,
+    user_id:  currentUser.id,
+    email:    currentUser.email,
+    role:     'owner'
   });
 
   /* 기존 board_id 없는 카드를 새 보드로 마이그레이션 */
-  await sb.from('cards').update({ board_id: board.id })
-    .eq('user_id', currentUser.id).is('board_id', null);
+  await sb.from('cards')
+    .update({ board_id: board.id })
+    .eq('user_id', currentUser.id)
+    .is('board_id', null);
 
   await switchBoard(board.id);
+  renderBoardPicker();
 }
 
 async function switchBoard(boardId) {
   currentBoardId = boardId;
   const { data: board } = await sb.from('boards').select('name').eq('id', boardId).single();
-  if (board) document.getElementById('current-board-name').textContent = board.name;
+  document.getElementById('current-board-name').textContent = board?.name ?? '보드';
   closeBoardDropdown();
   loadCards();
   if (activityPanelOpen) loadActivityLog();
@@ -160,9 +183,9 @@ function toggleBoardDropdown() {
   if (dd.style.display === 'none') {
     renderBoardPicker();
     dd.style.display = 'block';
-    document.addEventListener('click', closeBoardDropdownOutside, { once: true });
+    setTimeout(() => document.addEventListener('click', closeBoardDropdownOutside, { once: true }), 0);
   } else {
-    dd.style.display = 'none';
+    closeBoardDropdown();
   }
 }
 function closeBoardDropdown() {
@@ -171,20 +194,18 @@ function closeBoardDropdown() {
 function closeBoardDropdownOutside(e) {
   if (!document.getElementById('board-picker').contains(e.target)) closeBoardDropdown();
 }
-
 async function renderBoardPicker() {
   const boards = await fetchMyBoards();
   const list = document.getElementById('board-list');
   list.innerHTML = '';
   boards.forEach(b => {
-    const item = document.createElement('button');
-    item.className = 'board-dropdown-item' + (b.id === currentBoardId ? ' active' : '');
-    item.textContent = b.name;
-    item.onclick = () => switchBoard(b.id);
-    list.appendChild(item);
+    const btn = document.createElement('button');
+    btn.className = 'board-dropdown-item' + (b.id === currentBoardId ? ' active' : '');
+    btn.textContent = b.name;
+    btn.onclick = () => switchBoard(b.id);
+    list.appendChild(btn);
   });
 }
-
 function openNewBoardModal() {
   closeBoardDropdown();
   document.getElementById('new-board-name').value = '';
@@ -210,7 +231,9 @@ async function createBoard() {
   renderBoardPicker();
 }
 
-/* ── 공유 모달 ── */
+/* ══════════════════════════════════════
+   공유 모달
+══════════════════════════════════════ */
 async function openShareModal() {
   if (!currentBoardId) return;
   document.getElementById('share-modal-backdrop').style.display = 'flex';
@@ -219,7 +242,6 @@ async function openShareModal() {
 
   const { data: board } = await sb.from('boards').select('invite_code').eq('id', currentBoardId).single();
   if (board) document.getElementById('invite-code-display').textContent = board.invite_code;
-
   await renderMemberList();
 }
 function closeShareModal() {
@@ -234,17 +256,19 @@ function copyInviteCode() {
   });
 }
 async function joinBoard() {
-  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+  const code  = document.getElementById('join-code-input').value.trim().toUpperCase();
   const msgEl = document.getElementById('join-message');
-  if (!code || code.length !== 6) { msgEl.style.color = '#e74c3c'; msgEl.textContent = '6자리 코드를 입력하세요.'; return; }
-
+  if (!code || code.length !== 6) {
+    msgEl.style.color = '#e74c3c'; msgEl.textContent = '6자리 코드를 입력하세요.'; return;
+  }
   const { data, error } = await sb.rpc('get_board_by_invite', { code });
   if (error || !data || data.length === 0) {
     msgEl.style.color = '#e74c3c'; msgEl.textContent = '유효하지 않은 코드입니다.'; return;
   }
-  const { board_id: boardId } = data[0];
-  if (boardId === currentBoardId) { msgEl.style.color = '#888'; msgEl.textContent = '이미 참가한 보드입니다.'; return; }
-
+  const boardId = data[0].board_id;
+  if (boardId === currentBoardId) {
+    msgEl.style.color = '#888'; msgEl.textContent = '이미 참가한 보드입니다.'; return;
+  }
   const { error: joinErr } = await sb.from('board_members').insert({
     board_id: boardId, user_id: currentUser.id,
     email: currentUser.email, role: 'member'
@@ -258,12 +282,11 @@ async function joinBoard() {
   setTimeout(closeShareModal, 1000);
 }
 async function renderMemberList() {
-  const { data, error } = await sb.from('board_members')
+  const { data } = await sb.from('board_members')
     .select('email, role, joined_at').eq('board_id', currentBoardId);
   const ul = document.getElementById('member-list');
   ul.innerHTML = '';
-  if (error || !data) return;
-  data.forEach(m => {
+  (data || []).forEach(m => {
     const li = document.createElement('li');
     li.className = 'member-item';
     li.innerHTML = `
@@ -276,7 +299,9 @@ async function renderMemberList() {
   });
 }
 
-/* ── 활동 로그 패널 ── */
+/* ══════════════════════════════════════
+   활동 로그 패널
+══════════════════════════════════════ */
 function toggleActivityPanel() {
   activityPanelOpen = !activityPanelOpen;
   document.getElementById('activity-panel').classList.toggle('open', activityPanelOpen);
@@ -285,71 +310,67 @@ function toggleActivityPanel() {
 }
 async function loadActivityLog() {
   if (!currentBoardId) return;
-  const { data, error } = await sb.from('activity_log')
+  const { data } = await sb.from('activity_log')
     .select('*').eq('board_id', currentBoardId)
     .order('created_at', { ascending: false }).limit(50);
-
   const list = document.getElementById('activity-list');
-  if (error || !data || data.length === 0) {
+  if (!data || data.length === 0) {
     list.innerHTML = '<p class="activity-empty">활동 내역이 없습니다.</p>'; return;
   }
   list.innerHTML = data.map(log => {
-    const p = log.payload || {};
+    const p     = log.payload || {};
     const email = p.user_email || '알 수 없음';
-    const time  = new Date(log.created_at).toLocaleString('ko-KR', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
-    const desc  = actionLabel(log.action, p);
+    const time  = new Date(log.created_at).toLocaleString('ko-KR', {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
     return `<div class="activity-item">
       <div class="activity-avatar">${email.charAt(0).toUpperCase()}</div>
       <div class="activity-info">
-        <span class="activity-desc">${desc}</span>
+        <span class="activity-desc">${actionLabel(log.action, p)}</span>
         <span class="activity-meta">${email.split('@')[0]} · ${time}</span>
       </div>
     </div>`;
   }).join('');
 }
 function actionLabel(action, p) {
+  const COL = { todo: 'To-Do', inprogress: 'In-Progress', done: 'Done' };
   switch (action) {
-    case 'card_add':    return `카드 추가: <b>${p.text || ''}</b> → ${colLabel(p.col)}`;
+    case 'card_add':    return `카드 추가: <b>${p.text || ''}</b> → ${COL[p.col] || p.col}`;
     case 'card_delete': return `카드 삭제: <b>${p.text || ''}</b>`;
-    case 'card_move':   return `카드 이동: <b>${p.text || ''}</b> ${colLabel(p.from_col)} → ${colLabel(p.to_col)}`;
+    case 'card_move':   return `카드 이동: <b>${p.text || ''}</b> ${COL[p.from_col] || ''} → ${COL[p.to_col] || ''}`;
     case 'card_edit':   return `카드 수정: <b>${p.text || ''}</b>`;
     default:            return action;
   }
-}
-function colLabel(col) {
-  return { todo: 'To-Do', inprogress: 'In-Progress', done: 'Done' }[col] || col || '';
 }
 async function logActivity(action, payload) {
   if (!currentBoardId || !currentUser) return;
   await sb.from('activity_log').insert({
     board_id: currentBoardId,
-    user_id: currentUser.id,
+    user_id:  currentUser.id,
     action,
-    payload: { ...payload, user_email: currentUser.email }
+    payload:  { ...payload, user_email: currentUser.email }
   });
   if (activityPanelOpen) loadActivityLog();
 }
 
-/* ── DB: 카드 로드 ── */
+/* ══════════════════════════════════════
+   카드 CRUD
+══════════════════════════════════════ */
 async function loadCards() {
   if (!currentUser || !currentBoardId) return;
   const { data, error } = await sb.from('cards')
     .select('id, col, text, position, priority, due_date, tags')
     .eq('board_id', currentBoardId)
     .order('position', { ascending: true });
-
   if (error) { console.error('카드 로드 실패:', error.message); return; }
   const state = { todo: [], inprogress: [], done: [] };
-  (data || []).forEach(row => {
-    if (state[row.col] !== undefined) state[row.col].push(row);
-  });
+  (data || []).forEach(row => { if (state[row.col]) state[row.col].push(row); });
   render(state);
 }
 
-/* ── DB: 카드 추가 ── */
 async function addCard(col) {
   const input = document.getElementById('input-' + col);
-  const text = input.value.trim();
+  const text  = input.value.trim();
   if (!text || !currentUser || !currentBoardId) return;
 
   const { data: existing } = await sb.from('cards').select('position')
@@ -364,19 +385,17 @@ async function addCard(col) {
   if (error) { console.error('카드 추가 실패:', error.message); return; }
 
   input.value = '';
-  await logActivity('card_add', { card_id: card.id, text, col });
+  logActivity('card_add', { card_id: card.id, text, col });
   loadCards();
 }
 
-/* ── DB: 카드 삭제 ── */
 async function deleteCard(id, text) {
   const { error } = await sb.from('cards').delete().eq('id', id);
   if (error) { console.error('카드 삭제 실패:', error.message); return; }
-  await logActivity('card_delete', { card_id: id, text });
+  logActivity('card_delete', { card_id: id, text });
   loadCards();
 }
 
-/* ── DB: 카드 이동 ── */
 async function moveCard(id, destCol, srcCol, text) {
   const { data: existing } = await sb.from('cards').select('position')
     .eq('board_id', currentBoardId).eq('col', destCol)
@@ -385,40 +404,19 @@ async function moveCard(id, destCol, srcCol, text) {
 
   const { error } = await sb.from('cards').update({ col: destCol, position: nextPos }).eq('id', id);
   if (error) { console.error('카드 이동 실패:', error.message); return; }
-  await logActivity('card_move', { card_id: id, text, from_col: srcCol, to_col: destCol });
+  logActivity('card_move', { card_id: id, text, from_col: srcCol, to_col: destCol });
   loadCards();
 }
 
-/* ── DB: 카드 수정 (상세 모달) ── */
-async function saveCardModal() {
-  if (!cardModalId) return;
-  const text     = document.getElementById('card-modal-text').value.trim();
-  const priority = document.getElementById('card-modal-priority').value || null;
-  const due_date = document.getElementById('card-modal-due').value || null;
-  const tagsRaw  = document.getElementById('card-modal-tags').value;
-  const tags     = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
-
-  const { error } = await sb.from('cards').update({ text, priority, due_date, tags }).eq('id', cardModalId);
-  if (error) { console.error('카드 수정 실패:', error.message); return; }
-  await logActivity('card_edit', { card_id: cardModalId, text, priority, due_date, tags });
-  closeCardModal();
-  loadCards();
-}
-async function deleteCardFromModal() {
-  if (!cardModalId) return;
-  const text = document.getElementById('card-modal-text').value;
-  closeCardModal();
-  await deleteCard(cardModalId, text);
-}
-
-/* ── 카드 상세 모달 ── */
+/* ══════════════════════════════════════
+   카드 상세 모달
+══════════════════════════════════════ */
 async function openCardModal(cardId) {
   cardModalId = cardId;
   const { data: card, error } = await sb.from('cards')
     .select('text, priority, due_date, tags').eq('id', cardId).single();
   if (error || !card) return;
-
-  document.getElementById('card-modal-text').value     = card.text || '';
+  document.getElementById('card-modal-text').value     = card.text     || '';
   document.getElementById('card-modal-priority').value = card.priority || '';
   document.getElementById('card-modal-due').value      = card.due_date || '';
   document.getElementById('card-modal-tags').value     = (card.tags || []).join(', ');
@@ -428,8 +426,31 @@ function closeCardModal() {
   document.getElementById('card-modal-backdrop').style.display = 'none';
   cardModalId = null;
 }
+async function saveCardModal() {
+  if (!cardModalId) return;
+  const text     = document.getElementById('card-modal-text').value.trim();
+  const priority = document.getElementById('card-modal-priority').value || null;
+  const due_date = document.getElementById('card-modal-due').value      || null;
+  const tags     = document.getElementById('card-modal-tags').value
+    .split(',').map(t => t.trim()).filter(Boolean);
 
-/* ── 렌더링 ── */
+  const { error } = await sb.from('cards').update({ text, priority, due_date, tags }).eq('id', cardModalId);
+  if (error) { console.error('카드 수정 실패:', error.message); return; }
+  logActivity('card_edit', { card_id: cardModalId, text, priority, due_date, tags });
+  closeCardModal();
+  loadCards();
+}
+async function deleteCardFromModal() {
+  if (!cardModalId) return;
+  const text = document.getElementById('card-modal-text').value;
+  const id   = cardModalId;
+  closeCardModal();
+  await deleteCard(id, text);
+}
+
+/* ══════════════════════════════════════
+   렌더링
+══════════════════════════════════════ */
 function render(state) {
   COLS.forEach(col => {
     const list = document.getElementById('list-' + col);
@@ -441,62 +462,55 @@ function render(state) {
 
 function createCard(card) {
   const el = document.createElement('div');
-  el.className = 'card';
-  if (card.priority) el.classList.add('priority-' + card.priority);
+  el.className = 'card' + (card.priority ? ' priority-' + card.priority : '');
   el.draggable = true;
   el.dataset.id  = card.id;
   el.dataset.col = card.col;
 
-  /* 텍스트 */
+  const top = document.createElement('div');
+  top.className = 'card-top';
+
   const span = document.createElement('span');
   span.className = 'card-text';
   span.textContent = card.text;
 
-  /* 삭제 버튼 */
   const delBtn = document.createElement('button');
   delBtn.className = 'card-delete';
   delBtn.textContent = '✕';
   delBtn.title = '삭제';
   delBtn.onclick = e => { e.stopPropagation(); deleteCard(card.id, card.text); };
 
-  /* 메타 배지 영역 */
-  const metaRow = document.createElement('div');
-  metaRow.className = 'card-meta';
-
-  if (card.priority) {
-    const pb = document.createElement('span');
-    pb.className = 'meta-badge priority-badge ' + card.priority;
-    pb.textContent = { high: '높음', medium: '보통', low: '낮음' }[card.priority];
-    metaRow.appendChild(pb);
-  }
-  if (card.due_date) {
-    const db = document.createElement('span');
-    db.className = 'meta-badge due-badge';
-    const d = new Date(card.due_date);
-    const overdue = d < new Date() && card.col !== 'done';
-    if (overdue) db.classList.add('overdue');
-    db.textContent = '📅 ' + d.toLocaleDateString('ko-KR', { month:'short', day:'numeric' });
-    metaRow.appendChild(db);
-  }
-  (card.tags || []).forEach(tag => {
-    const tb = document.createElement('span');
-    tb.className = 'meta-badge tag-badge';
-    tb.textContent = tag;
-    metaRow.appendChild(tb);
-  });
-
-  const top = document.createElement('div');
-  top.className = 'card-top';
   top.appendChild(span);
   top.appendChild(delBtn);
-
   el.appendChild(top);
-  if (metaRow.children.length > 0) el.appendChild(metaRow);
 
-  /* 클릭 → 상세 모달 */
+  /* 메타 배지 */
+  const meta = document.createElement('div');
+  meta.className = 'card-meta';
+
+  if (card.priority) {
+    const b = document.createElement('span');
+    b.className = `meta-badge priority-badge ${card.priority}`;
+    b.textContent = { high: '높음', medium: '보통', low: '낮음' }[card.priority];
+    meta.appendChild(b);
+  }
+  if (card.due_date) {
+    const b = document.createElement('span');
+    const d = new Date(card.due_date + 'T00:00:00');
+    const overdue = d < new Date() && card.col !== 'done';
+    b.className = 'meta-badge due-badge' + (overdue ? ' overdue' : '');
+    b.textContent = '📅 ' + d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+    meta.appendChild(b);
+  }
+  (card.tags || []).forEach(tag => {
+    const b = document.createElement('span');
+    b.className = 'meta-badge tag-badge';
+    b.textContent = tag;
+    meta.appendChild(b);
+  });
+  if (meta.children.length > 0) el.appendChild(meta);
+
   el.addEventListener('click', () => openCardModal(card.id));
-
-  /* 드래그 */
   el.addEventListener('dragstart', e => {
     el.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
@@ -506,14 +520,13 @@ function createCard(card) {
     el.classList.remove('dragging');
     document.querySelectorAll('.card-list').forEach(l => l.classList.remove('drag-over'));
   });
-
   return el;
 }
 
-/* ── 드롭 영역 이벤트 ── */
+/* ── 드롭 영역 ── */
 COLS.forEach(col => {
   const list = document.getElementById('list-' + col);
-  list.addEventListener('dragover', e => { e.preventDefault(); list.classList.add('drag-over'); });
+  list.addEventListener('dragover',  e => { e.preventDefault(); list.classList.add('drag-over'); });
   list.addEventListener('dragleave', e => { if (!list.contains(e.relatedTarget)) list.classList.remove('drag-over'); });
   list.addEventListener('drop', async e => {
     e.preventDefault();
@@ -525,7 +538,7 @@ COLS.forEach(col => {
   });
 });
 
-/* ── Enter 키로 카드 추가 ── */
+/* ── Enter 키 ── */
 COLS.forEach(col => {
   const input = document.getElementById('input-' + col);
   if (input) input.addEventListener('keydown', e => {
@@ -533,7 +546,7 @@ COLS.forEach(col => {
   });
 });
 
-/* ── ESC로 모달 닫기 ── */
+/* ── ESC 키 ── */
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   closeCardModal();
