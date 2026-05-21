@@ -28,7 +28,7 @@ function showBoard() {
   document.getElementById('board-section').style.display = 'block';
 }
 function showAuth() {
-  document.getElementById('auth-section').style.display  = '';
+  document.getElementById('auth-section').style.display  = 'flex';
   document.getElementById('board-section').style.display = 'none';
   /* 활동 패널도 닫기 */
   if (activityPanelOpen) {
@@ -119,6 +119,18 @@ sb.auth.onAuthStateChange(async (event, session) => {
 
 async function initUserBoard() {
   document.getElementById('current-board-name').textContent = '보드 로딩 중...';
+
+  /* board_members 테이블이 존재하는지 먼저 확인 */
+  const { error: tblErr } = await sb.from('board_members').select('id').limit(1);
+  if (tblErr && tblErr.code === '42P01') {
+    /* 테이블 없음 — migration 미실행 → 기존 cards만 사용 */
+    console.warn('board_members 테이블 없음. migration_v3.sql 실행 필요.');
+    document.getElementById('current-board-name').textContent = '내 보드';
+    currentBoardId = '__legacy__';
+    loadCardsLegacy();
+    return;
+  }
+
   const boards = await fetchMyBoards();
   if (boards.length === 0) {
     await createDefaultBoard();
@@ -126,6 +138,19 @@ async function initUserBoard() {
     await switchBoard(boards[0].id);
     renderBoardPicker();
   }
+}
+
+/* migration 전 레거시 모드 — board_id IS NULL 카드만 사용 */
+async function loadCardsLegacy() {
+  const { data, error } = await sb.from('cards')
+    .select('id, col, text, position, priority, due_date, tags')
+    .eq('user_id', currentUser.id)
+    .is('board_id', null)
+    .order('position', { ascending: true });
+  if (error) { console.error('카드 로드 실패:', error.message); return; }
+  const state = { todo: [], inprogress: [], done: [] };
+  (data || []).forEach(row => { if (state[row.col]) state[row.col].push(row); });
+  render(state);
 }
 
 async function fetchMyBoards() {
@@ -371,41 +396,52 @@ async function loadCards() {
 async function addCard(col) {
   const input = document.getElementById('input-' + col);
   const text  = input.value.trim();
-  if (!text || !currentUser || !currentBoardId) return;
+  if (!text || !currentUser) return;
 
-  const { data: existing } = await sb.from('cards').select('position')
-    .eq('board_id', currentBoardId).eq('col', col)
+  const isLegacy = currentBoardId === '__legacy__';
+
+  /* position 계산 */
+  let posQuery = sb.from('cards').select('position').eq('col', col)
     .order('position', { ascending: false }).limit(1);
+  if (isLegacy) posQuery = posQuery.eq('user_id', currentUser.id).is('board_id', null);
+  else          posQuery = posQuery.eq('board_id', currentBoardId);
+
+  const { data: existing } = await posQuery;
   const nextPos = existing?.length > 0 ? existing[0].position + 1 : 0;
 
-  const { data: card, error } = await sb.from('cards').insert({
-    user_id: currentUser.id, board_id: currentBoardId,
-    col, text, position: nextPos
-  }).select().single();
-  if (error) { console.error('카드 추가 실패:', error.message); return; }
+  const insertObj = { user_id: currentUser.id, col, text, position: nextPos };
+  if (!isLegacy) insertObj.board_id = currentBoardId;
+
+  const { data: card, error } = await sb.from('cards').insert(insertObj).select().single();
+  if (error) { console.error('카드 추가 실패:', error.message, error.hint); return; }
 
   input.value = '';
-  logActivity('card_add', { card_id: card.id, text, col });
-  loadCards();
+  if (!isLegacy) logActivity('card_add', { card_id: card.id, text, col });
+  isLegacy ? loadCardsLegacy() : loadCards();
 }
 
 async function deleteCard(id, text) {
   const { error } = await sb.from('cards').delete().eq('id', id);
   if (error) { console.error('카드 삭제 실패:', error.message); return; }
-  logActivity('card_delete', { card_id: id, text });
-  loadCards();
+  const isLegacy = currentBoardId === '__legacy__';
+  if (!isLegacy) logActivity('card_delete', { card_id: id, text });
+  isLegacy ? loadCardsLegacy() : loadCards();
 }
 
 async function moveCard(id, destCol, srcCol, text) {
-  const { data: existing } = await sb.from('cards').select('position')
-    .eq('board_id', currentBoardId).eq('col', destCol)
+  const isLegacy = currentBoardId === '__legacy__';
+  let posQuery = sb.from('cards').select('position').eq('col', destCol)
     .order('position', { ascending: false }).limit(1);
+  if (isLegacy) posQuery = posQuery.eq('user_id', currentUser.id).is('board_id', null);
+  else          posQuery = posQuery.eq('board_id', currentBoardId);
+
+  const { data: existing } = await posQuery;
   const nextPos = existing?.length > 0 ? existing[0].position + 1 : 0;
 
   const { error } = await sb.from('cards').update({ col: destCol, position: nextPos }).eq('id', id);
   if (error) { console.error('카드 이동 실패:', error.message); return; }
-  logActivity('card_move', { card_id: id, text, from_col: srcCol, to_col: destCol });
-  loadCards();
+  if (!isLegacy) logActivity('card_move', { card_id: id, text, from_col: srcCol, to_col: destCol });
+  isLegacy ? loadCardsLegacy() : loadCards();
 }
 
 /* ══════════════════════════════════════
