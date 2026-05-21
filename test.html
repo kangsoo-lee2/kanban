@@ -2,145 +2,101 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>Kanban 진단</title>
+  <title>Kanban 진단 v3</title>
   <style>
     body { font-family: monospace; padding: 24px; background: #1a1a2e; color: #eee; }
     h2 { color: #3498db; margin-bottom: 16px; }
-    .step { margin: 12px 0; padding: 12px; border-radius: 6px; background: #16213e; }
+    .step { margin: 8px 0; padding: 10px 12px; border-radius: 6px; background: #16213e; }
     .ok   { border-left: 4px solid #2ecc71; }
     .fail { border-left: 4px solid #e74c3c; }
     .info { border-left: 4px solid #3498db; }
-    .wait { border-left: 4px solid #f39c12; }
-    pre { white-space: pre-wrap; word-break: break-all; font-size: 0.85rem; margin-top: 6px; color: #aaa; }
-    button { padding: 8px 18px; margin: 6px 4px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
-    .btn-primary { background: #3498db; color: #fff; }
-    .btn-danger  { background: #e74c3c; color: #fff; }
-    input { padding: 7px 10px; border-radius: 6px; border: 1px solid #444; background: #0f3460; color: #fff; width: 220px; margin: 4px; }
-    #log { margin-top: 20px; }
+    pre { white-space: pre-wrap; word-break: break-all; font-size: .8rem; margin-top: 4px; color: #aaa; }
+    button { padding: 8px 16px; margin: 4px; border: none; border-radius: 6px; cursor: pointer; font-size: .88rem; }
+    .run { background: #3498db; color: #fff; }
+    .out { background: #e74c3c; color: #fff; }
+    #log { margin-top: 16px; }
   </style>
 </head>
 <body>
-<h2>🔍 Kanban Supabase 진단</h2>
-
-<div class="step info">
-  <b>테스트 이메일/비밀번호</b><br>
-  <input type="email" id="t-email" placeholder="test@example.com" />
-  <input type="password" id="t-pw" placeholder="password123" />
-</div>
-
-<button class="btn-primary" onclick="runAll()">전체 테스트 실행</button>
-<button class="btn-primary" onclick="testSignup()">회원가입</button>
-<button class="btn-primary" onclick="testLogin()">로그인</button>
-<button class="btn-primary" onclick="testSession()">세션 확인</button>
-<button class="btn-primary" onclick="testCards()">카드 테이블 조회</button>
-<button class="btn-primary" onclick="testInsert()">카드 삽입 테스트</button>
-<button class="btn-danger"  onclick="testSignout()">로그아웃</button>
-
+<h2>🔍 Kanban v3 진단</h2>
+<button class="run" onclick="runAll()">전체 진단 실행</button>
+<button class="out" onclick="doSignout()">로그아웃</button>
 <div id="log"></div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPABASE_URL = 'https://tfakzxaygrvvzmtgqwhr.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_dKRm1KtOMAV9Ow3VGI4QDQ_N87ile5h';
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-function log(msg, status = 'info', detail = '') {
-  const div = document.createElement('div');
-  div.className = 'step ' + status;
-  div.innerHTML = '<b>' + msg + '</b>' + (detail ? '<pre>' + JSON.stringify(detail, null, 2) + '</pre>' : '');
-  document.getElementById('log').prepend(div);
+const sb = supabase.createClient(
+  'https://tfakzxaygrvvzmtgqwhr.supabase.co',
+  'sb_publishable_dKRm1KtOMAV9Ow3VGI4QDQ_N87ile5h'
+);
+function log(msg, status='info', detail='') {
+  const d = document.createElement('div');
+  d.className = 'step ' + status;
+  d.innerHTML = '<b>' + msg + '</b>' + (detail ? '<pre>' + (typeof detail === 'object' ? JSON.stringify(detail,null,2) : detail) + '</pre>' : '');
+  document.getElementById('log').prepend(d);
 }
-
-function email() { return document.getElementById('t-email').value.trim(); }
-function pw()    { return document.getElementById('t-pw').value; }
-
-async function testSignup() {
-  log('▶ 회원가입 시도: ' + email(), 'wait');
-  const { data, error } = await sb.auth.signUp({ email: email(), password: pw() });
-  if (error) { log('✗ 회원가입 실패', 'fail', { message: error.message, status: error.status }); return; }
-  log('✓ 회원가입 응답', 'ok', {
-    user: data.user?.id,
-    email: data.user?.email,
-    confirmed: data.user?.email_confirmed_at,
-    session: !!data.session
-  });
-}
-
-async function testLogin() {
-  log('▶ 로그인 시도: ' + email(), 'wait');
-  const { data, error } = await sb.auth.signInWithPassword({ email: email(), password: pw() });
-  if (error) { log('✗ 로그인 실패', 'fail', { message: error.message, status: error.status }); return; }
-  log('✓ 로그인 성공', 'ok', {
-    user_id: data.user?.id,
-    email: data.user?.email,
-    access_token: data.session?.access_token?.substring(0, 30) + '...'
-  });
-}
-
-async function testSession() {
-  log('▶ 현재 세션 확인', 'wait');
-  const { data, error } = await sb.auth.getSession();
-  if (error) { log('✗ 세션 오류', 'fail', error); return; }
-  if (!data.session) { log('ℹ 세션 없음 (로그아웃 상태)', 'info'); return; }
-  log('✓ 세션 있음', 'ok', {
-    user_id: data.session.user?.id,
-    email: data.session.user?.email,
-    expires_at: new Date(data.session.expires_at * 1000).toLocaleString()
-  });
-}
-
-async function testCards() {
-  log('▶ cards 테이블 SELECT', 'wait');
-  const { data, error } = await sb.from('cards').select('*').limit(5);
-  if (error) { log('✗ cards 조회 실패', 'fail', { message: error.message, code: error.code, hint: error.hint }); return; }
-  log('✓ cards 조회 성공', 'ok', { count: data.length, rows: data });
-}
-
-async function testInsert() {
-  log('▶ cards INSERT 테스트', 'wait');
-  const { data: sess } = await sb.auth.getSession();
-  if (!sess.session) { log('✗ 로그인 필요', 'fail'); return; }
-  const { data, error } = await sb.from('cards').insert({
-    user_id: sess.session.user.id,
-    col: 'todo',
-    text: '테스트 카드 ' + new Date().toLocaleTimeString(),
-    position: 0
-  }).select();
-  if (error) { log('✗ INSERT 실패', 'fail', { message: error.message, code: error.code, hint: error.hint }); return; }
-  log('✓ INSERT 성공', 'ok', data);
-}
-
-async function testSignout() {
+async function doSignout() {
   await sb.auth.signOut();
-  log('✓ 로그아웃 완료', 'ok');
+  log('로그아웃 완료', 'ok');
 }
-
 async function runAll() {
   document.getElementById('log').innerHTML = '';
-  log('━━━ 전체 테스트 시작 ━━━', 'info');
 
-  // 1. SDK 로드 확인
-  log('▶ Supabase SDK 로드 확인', 'wait');
-  if (typeof supabase !== 'undefined') {
-    log('✓ SDK 로드됨', 'ok', { version: supabase.version || 'loaded' });
-  } else {
-    log('✗ SDK 로드 실패', 'fail');
-    return;
+  // 1. 세션
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { log('❌ 세션 없음 — 로그인 필요', 'fail'); return; }
+  log('✓ 세션 있음: ' + session.user.email, 'ok', { uid: session.user.id });
+  const uid = session.user.id;
+
+  // 2. boards 테이블
+  const { data: b1, error: e1 } = await sb.from('boards').select('id,name').limit(5);
+  if (e1) log('❌ boards SELECT 실패', 'fail', e1);
+  else    log('✓ boards SELECT 성공', 'ok', b1);
+
+  // 3. board_members 테이블
+  const { data: bm, error: em } = await sb.from('board_members').select('*').eq('user_id', uid);
+  if (em) log('❌ board_members SELECT 실패', 'fail', em);
+  else    log('✓ board_members: ' + (bm?.length ?? 0) + '개', 'ok', bm);
+
+  // 4. boards INSERT
+  const code = Math.random().toString(36).slice(2,8).toUpperCase();
+  const { data: nb, error: en } = await sb.from('boards').insert({
+    owner_id: uid, name: '진단 테스트 보드', invite_code: code
+  }).select().single();
+  if (en) log('❌ boards INSERT 실패', 'fail', en);
+  else {
+    log('✓ boards INSERT 성공', 'ok', nb);
+
+    // 5. board_members INSERT
+    const { error: ebm } = await sb.from('board_members').insert({
+      board_id: nb.id, user_id: uid, email: session.user.email, role: 'owner'
+    });
+    if (ebm) log('❌ board_members INSERT 실패', 'fail', ebm);
+    else log('✓ board_members INSERT 성공', 'ok');
+
+    // 6. cards INSERT
+    const { data: nc, error: ec } = await sb.from('cards').insert({
+      user_id: uid, board_id: nb.id, col: 'todo', text: '진단 카드', position: 0
+    }).select().single();
+    if (ec) log('❌ cards INSERT 실패', 'fail', ec);
+    else    log('✓ cards INSERT 성공', 'ok', nc);
+
+    // 7. 정리 (테스트 데이터 삭제)
+    if (nc) await sb.from('cards').delete().eq('id', nc.id);
+    await sb.from('boards').delete().eq('id', nb.id);
+    log('🧹 테스트 데이터 정리 완료', 'info');
   }
 
-  // 2. 세션 확인
-  await testSession();
+  // 8. 기존 cards (board_id NULL)
+  const { data: oldCards, error: eo } = await sb.from('cards').select('id,col,text,board_id').eq('user_id', uid).is('board_id', null);
+  if (eo) log('❌ 기존 cards(NULL board_id) 조회 실패', 'fail', eo);
+  else    log('✓ NULL board_id 카드: ' + (oldCards?.length ?? 0) + '개', 'ok', oldCards?.slice(0,3));
 
-  // 3. 로그인 시도
-  if (email() && pw()) {
-    await testLogin();
-    await testSession();
-    await testCards();
-    await testInsert();
-  } else {
-    log('ℹ 이메일/비밀번호 입력 후 전체 테스트 재실행', 'info');
-  }
+  // 9. activity_log 테이블
+  const { error: eal } = await sb.from('activity_log').select('id').limit(1);
+  if (eal) log('❌ activity_log SELECT 실패', 'fail', eal);
+  else     log('✓ activity_log 테이블 존재', 'ok');
+
+  log('━━━ 진단 완료 ━━━', 'info');
 }
 </script>
 </body>
